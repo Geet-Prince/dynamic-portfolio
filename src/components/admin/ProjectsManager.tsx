@@ -89,7 +89,7 @@ export function ProjectsManager({ projects }: { projects: Project[] }) {
               <button onClick={() => setEditing(p)} className="btn-secondary !px-4 !py-1.5 !text-[13px]">Edit</button>
               <button
                 disabled={pending}
-                onClick={() => { if (confirm(`Delete “${p.title}”?`)) start(async () => { await deleteProject(p.id); }); }}
+                onClick={() => { if (confirm(`Delete “${p.title}”?`)) start(async () => { await deleteProject(p.id, p.slug); }); }}
                 className="rounded-full border border-red-200 px-4 py-1.5 text-[13px] font-semibold text-red-600 hover:bg-red-50"
               >
                 Delete

@@ -12,7 +12,7 @@ export default async function AdminMessagesPage() {
       <h1 className="text-2xl font-semibold tracking-tight text-ink">Messages</h1>
       <p className="mb-6 mt-1 text-sm text-muted">{messages.length} total · {unread} unread</p>
       <MessagesInbox messages={messages} />
-      <AdminSavePublishBar section="messages" label="messages" expected={null} />
+      <AdminSavePublishBar section="messages" label="messages" expected={null} allowReset={false} />
     </div>
   );
 }

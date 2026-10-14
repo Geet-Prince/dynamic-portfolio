@@ -11,7 +11,13 @@ export default async function AdminProjectsPage() {
       <h1 className="text-2xl font-semibold tracking-tight text-ink">Projects</h1>
       <p className="mb-6 mt-1 text-sm text-muted">Add, edit, reorder, feature or delete. Changes publish instantly.</p>
       <ProjectsManager projects={projects} />
-      <AdminSavePublishBar section="projects" label="projects" expected={projects[0]?.title ?? null} />
+      <AdminSavePublishBar
+        section="projects"
+        label="projects"
+        items={projects}
+        labelKey="title"
+        expectedCount={projects.length}
+      />
     </div>
   );
 }

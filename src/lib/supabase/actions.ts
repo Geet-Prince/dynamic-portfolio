@@ -253,13 +253,18 @@ export async function upsertProject(formData: FormData): Promise<OkRemote | OkLo
   return { ok: true as const, preview: true as const };
 }
 
-export async function deleteProject(id: string): Promise<OkRemote | OkLocal | Err> {
+export async function deleteProject(id: string, slug?: string): Promise<OkRemote | OkLocal | Err> {
   await requireAdmin();
   if (isSupabaseConfigured()) {
     try {
       const supabase = await writeClient();
-      const { error } = await supabase.from("projects").delete().eq("id", id);
+      const { data, error } = await supabase.from("projects").delete().eq("id", id).select("id");
       if (error) throw error;
+      // Belt-and-braces: if the id matched nothing, retry by slug.
+      if ((data?.length ?? 0) === 0 && slug) {
+        const { error: e2 } = await supabase.from("projects").delete().eq("slug", slug);
+        if (e2) throw e2;
+      }
       revalidateAll();
       return { ok: true as const };
     } catch {
@@ -267,7 +272,7 @@ export async function deleteProject(id: string): Promise<OkRemote | OkLocal | Er
     }
   }
   await mutateLocalStore((s) => {
-    s.projects = s.projects.filter((x) => x.id !== id);
+    s.projects = s.projects.filter((x) => x.id !== id && (!slug || x.slug !== slug));
   });
   revalidateAll();
   return { ok: true as const, preview: true as const };
@@ -333,13 +338,17 @@ export async function upsertSkill(formData: FormData): Promise<OkRemote | OkLoca
   return { ok: true as const, preview: true as const };
 }
 
-export async function deleteSkill(id: string): Promise<OkRemote | OkLocal | Err> {
+export async function deleteSkill(id: string, name?: string): Promise<OkRemote | OkLocal | Err> {
   await requireAdmin();
   if (isSupabaseConfigured()) {
     try {
       const supabase = await writeClient();
-      const { error } = await supabase.from("skills").delete().eq("id", id);
+      const { data, error } = await supabase.from("skills").delete().eq("id", id).select("id");
       if (error) throw error;
+      if ((data?.length ?? 0) === 0 && name) {
+        const { error: e2 } = await supabase.from("skills").delete().eq("name", name);
+        if (e2) throw e2;
+      }
       revalidateAll();
       return { ok: true as const };
     } catch {
@@ -347,7 +356,7 @@ export async function deleteSkill(id: string): Promise<OkRemote | OkLocal | Err>
     }
   }
   await mutateLocalStore((store) => {
-    store.skills = store.skills.filter((x) => x.id !== id);
+    store.skills = store.skills.filter((x) => x.id !== id && (!name || x.name !== name));
   });
   revalidateAll();
   return { ok: true as const, preview: true as const };
@@ -420,13 +429,17 @@ export async function upsertCredential(formData: FormData): Promise<OkRemote | O
   return { ok: true as const, preview: true as const };
 }
 
-export async function deleteCredential(id: string): Promise<OkRemote | OkLocal | Err> {
+export async function deleteCredential(id: string, title?: string): Promise<OkRemote | OkLocal | Err> {
   await requireAdmin();
   if (isSupabaseConfigured()) {
     try {
       const supabase = await writeClient();
-      const { error } = await supabase.from("credentials").delete().eq("id", id);
+      const { data, error } = await supabase.from("credentials").delete().eq("id", id).select("id");
       if (error) throw error;
+      if ((data?.length ?? 0) === 0 && title) {
+        const { error: e2 } = await supabase.from("credentials").delete().eq("title", title);
+        if (e2) throw e2;
+      }
       revalidateAll();
       return { ok: true as const };
     } catch {
@@ -434,7 +447,7 @@ export async function deleteCredential(id: string): Promise<OkRemote | OkLocal |
     }
   }
   await mutateLocalStore((store) => {
-    store.credentials = store.credentials.filter((x) => x.id !== id);
+    store.credentials = store.credentials.filter((x) => x.id !== id && (!title || x.title !== title));
   });
   revalidateAll();
   return { ok: true as const, preview: true as const };
@@ -499,13 +512,17 @@ export async function upsertFaq(formData: FormData): Promise<OkRemote | OkLocal 
   return { ok: true as const, preview: true as const };
 }
 
-export async function deleteFaq(id: string): Promise<OkRemote | OkLocal | Err> {
+export async function deleteFaq(id: string, question?: string): Promise<OkRemote | OkLocal | Err> {
   await requireAdmin();
   if (isSupabaseConfigured()) {
     try {
       const supabase = await writeClient();
-      const { error } = await supabase.from("aeo_faqs").delete().eq("id", id);
+      const { data, error } = await supabase.from("aeo_faqs").delete().eq("id", id).select("id");
       if (error) throw error;
+      if ((data?.length ?? 0) === 0 && question) {
+        const { error: e2 } = await supabase.from("aeo_faqs").delete().eq("question", question);
+        if (e2) throw e2;
+      }
       revalidateAll();
       return { ok: true as const };
     } catch {
@@ -513,7 +530,7 @@ export async function deleteFaq(id: string): Promise<OkRemote | OkLocal | Err> {
     }
   }
   await mutateLocalStore((store) => {
-    store.faqs = store.faqs.filter((x) => x.id !== id);
+    store.faqs = store.faqs.filter((x) => x.id !== id && (!question || x.question !== question));
   });
   revalidateAll();
   return { ok: true as const, preview: true as const };

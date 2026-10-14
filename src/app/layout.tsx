@@ -97,6 +97,10 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+// The theme + JSON-LD are read live from Supabase each request (no ISR cache).
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function RootLayout({
   children,
 }: {

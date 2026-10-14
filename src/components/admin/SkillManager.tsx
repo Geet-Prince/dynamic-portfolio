@@ -54,7 +54,7 @@ export function SkillManager({ skills }: { skills: Skill[] }) {
                   {s.name} <span className="font-mono text-[11px] text-subtle">{s.proficiency}%</span>
                   <button
                     aria-label={`Delete ${s.name}`}
-                    onClick={() => { if (confirm(`Delete “${s.name}”?`)) start(async () => { await deleteSkill(s.id); }); }}
+                    onClick={() => { if (confirm(`Delete “${s.name}”?`)) start(async () => { await deleteSkill(s.id, s.name); }); }}
                     className="rounded-full px-2 text-subtle hover:text-red-600"
                   >
                     ×

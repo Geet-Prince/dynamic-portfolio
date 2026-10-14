@@ -1,29 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminSupabase } from "./admin";
-import { fetchLiveBundle } from "../data-fetcher";
-import {
-  seedCredentials,
-  seedFaqs,
-  seedProfile,
-  seedProjects,
-  seedSkills,
-  seedTheme,
-} from "../seed-data";
-import { TARGET_QUERIES } from "../seo-bot";
+import { resetToFactorySeed } from "./seed-sync";
 
 // ---------------------------------------------------------------------------
-// Server-only Supabase SQL sync + read-after-write verification.
+// Server-only Supabase SQL write + read-after-write verification.
 //
-// Powers the /admin "Save & publish" pipeline and the /api/admin/* endpoints.
-// Three idempotent modes:
-//   • ensure    — conservative: fill EMPTY tables only (never clobbers edits).
-//   • seed      — canonical repair: forces Prince Raj's seed rows (fixes the
-//                 Verse project, back-fills missing credentials/FAQs/keywords),
-//                 while preserving custom rows. Profile/theme are only filled
-//                 when empty so admin edits survive.
-//   • reconcile — mirror the CURRENT live bundle (Supabase-first) back into
-//                 SQL, so anything that silently fell back to the local store
-//                 is flushed to PostgreSQL.
+// Supabase PostgreSQL is the 100% single source of truth. There are exactly
+// two write modes, and NEITHER one ever silently re-adds seed-data.ts rows:
+//
+//   • replace — commit the EXACT current /admin screen state. Upserts every
+//               item the admin can see AND deletes any row whose id is not in
+//               that list, so deleting a project (5 → 4) leaves 4 rows in
+//               PostgreSQL — the deleted row stays deleted.
+//   • reset   — the ONLY seed-data.ts writer: a confirmation-gated factory
+//               reset invoked solely by the "Reset to Factory Seed Data"
+//               button, never by reads/publishes/deletes/auto-sync.
+//
 // NEVER imported by client components.
 // ---------------------------------------------------------------------------
 
@@ -59,14 +51,16 @@ export const SECTION_LABEL: Record<AdminSection, string> = {
   messages: "messages",
 };
 
-export type SyncMode = "ensure" | "seed" | "reconcile";
+export type SyncMode = "replace" | "reset";
 
 export interface SyncOutcome {
   ok: boolean;
   section: AdminSection;
   table: string;
-  /** Rows written/updated during this sync. */
+  /** Rows inserted/updated during this sync. */
   written: number;
+  /** Rows removed because they are no longer on screen. */
+  deleted: number;
   /** Rows present in the table afterwards (read-after-write count). */
   rows: number;
   ms: number;
@@ -98,132 +92,59 @@ async function upsertRows(sb: AdminClient, table: string, rows: Row[]): Promise<
 async function fetchIds(
   sb: AdminClient,
   table: string,
-  columns: string
+  columns = "id"
 ): Promise<Array<Record<string, string>>> {
   const { data, error } = await sb.from(table).select(columns);
   if (error) throw error;
   return (data ?? []) as unknown as Array<Record<string, string>>;
 }
 
-function norm(s: string): string {
-  return s.trim().toLowerCase().replace(/\s+/g, " ");
-}
+const SINGLE_ROW_SECTIONS = new Set<AdminSection>(["profile", "design"]);
 
-/** Tracked keywords: add the 5 defaults without touching admin customs. */
-async function ensureTrackedKeywords(sb: AdminClient): Promise<number> {
-  try {
-    const existing = await fetchIds(sb, "seo_tracked_keywords", "keyword");
-    const present = new Set(existing.map((r) => norm(r.keyword ?? "")));
-    const missing = TARGET_QUERIES.filter((q) => !present.has(norm(q)));
-    if (missing.length === 0) return 0;
-    const { error } = await sb
-      .from("seo_tracked_keywords")
-      .upsert(missing.map((keyword) => ({ keyword })), { onConflict: "keyword" });
+/**
+ * Commit the exact on-screen state for a section:
+ *   1. upsert every item currently visible in /admin, and
+ *   2. delete every existing row whose id is NOT in that list.
+ * Reads never call this, and this never touches seed-data.ts.
+ */
+async function replaceSection(
+  sb: AdminClient,
+  section: AdminSection,
+  items: Row[]
+): Promise<{ written: number; deleted: number }> {
+  const table = SECTION_TABLE[section];
+
+  // The inbox is append-only (contact submissions); "publish" is a no-op.
+  if (section === "messages") return { written: 0, deleted: 0 };
+
+  // Single-row tables (profile / theme): keep exactly the one visible row.
+  if (SINGLE_ROW_SECTIONS.has(section)) {
+    const row = items[0];
+    if (!row) return { written: 0, deleted: 0 };
+    const written = await upsertRows(sb, table, [row]);
+    return { written, deleted: 0 };
+  }
+
+  // Collection tables: upsert the visible rows, prune everything else by id.
+  const existing = await fetchIds(sb, table, "id");
+  const keep = new Set(items.map((i) => String(i.id)));
+  const toDelete = existing.map((r) => r.id).filter((id) => id && !keep.has(id));
+  if (toDelete.length > 0) {
+    const { error } = await sb.from(table).delete().in("id", toDelete);
     if (error) throw error;
-    return missing.length;
-  } catch {
-    // Table may not be migrated yet — never block the core sync on it.
-    return 0;
   }
+  const written = await upsertRows(sb, table, items);
+  return { written, deleted: toDelete.length };
 }
 
-/** Bot-config vault: guarantee a single row exists (secrets stay blank). */
-async function ensureBotConfig(sb: AdminClient): Promise<number> {
-  try {
-    if ((await countRows(sb, "bot_config")) > 0) return 0;
-    const { error } = await sb.from("bot_config").insert({
-      cron_secret: "",
-      indexnow_key: "",
-      target_keywords: [],
-      auto_ping_indexnow: true,
-    });
-    if (error) throw error;
-    return 1;
-  } catch {
-    // bot_config may not be migrated yet — degrade gracefully.
-    return 0;
-  }
-}
-
-/** Conservative pass: fill only EMPTY tables (mirrors ensureSupabaseSeeded). */
-async function ensureExtras(sb: AdminClient): Promise<number> {
-  let written = 0;
-  const singles: Array<[string, Row]> = [
-    ["profile_config", seedProfile as unknown as Row],
-    ["site_theme_config", seedTheme as unknown as Row],
-  ];
-  for (const [table, row] of singles) {
-    if ((await countRows(sb, table)) === 0) written += await upsertRows(sb, table, [row]);
-  }
-  const lists: Array<[string, Row[]]> = [
-    ["projects", seedProjects as unknown as Row[]],
-    ["credentials", seedCredentials as unknown as Row[]],
-    ["aeo_faqs", seedFaqs as unknown as Row[]],
-  ];
-  for (const [table, rows] of lists) {
-    if ((await countRows(sb, table)) === 0) written += await upsertRows(sb, table, rows);
-  }
-  // Skills merge by name (insert missing seeds, keep customs).
-  const existingSkills = await fetchIds(sb, "skills", "id,name");
-  const skillNames = new Set(existingSkills.map((r) => norm(r.name ?? "")));
-  const missingSkills = seedSkills.filter((s) => !skillNames.has(norm(s.name)));
-  written += await upsertRows(sb, "skills", missingSkills as unknown as Row[]);
-  written += await ensureTrackedKeywords(sb);
-  written += await ensureBotConfig(sb);
-  return written;
-}
-
-/** Canonical repair: force seed rows for known entities, preserve customs. */
-async function seedRepair(sb: AdminClient): Promise<number> {
-  let written = await ensureExtras(sb);
-
-  // Projects — force the canonical seed content by slug (fixes Verse & Retro).
-  const existingProjects = await fetchIds(sb, "projects", "id,slug");
-  const idBySlug = new Map(existingProjects.map((r) => [r.slug, r.id]));
-  const projectRows = seedProjects.map((p) => {
-    const existingId = idBySlug.get(p.slug);
-    return existingId ? ({ ...p, id: existingId } as Row) : (p as unknown as Row);
-  });
-  written += await upsertRows(sb, "projects", projectRows);
-
-  // FAQs — refresh canonical answers for the seed questions.
-  const existingFaqs = await fetchIds(sb, "aeo_faqs", "id,question");
-  const idByQuestion = new Map(existingFaqs.map((r) => [norm(r.question ?? ""), r.id]));
-  const faqRows = seedFaqs.map((f) => {
-    const existingId = idByQuestion.get(norm(f.question));
-    return existingId ? ({ ...f, id: existingId } as Row) : (f as unknown as Row);
-  });
-  written += await upsertRows(sb, "aeo_faqs", faqRows);
-
-  // Credentials — insert any missing seed credentials (by title).
-  const existingCreds = await fetchIds(sb, "credentials", "id,title");
-  const credTitles = new Set(existingCreds.map((r) => norm(r.title ?? "")));
-  const missingCreds = seedCredentials.filter((c) => !credTitles.has(norm(c.title)));
-  written += await upsertRows(sb, "credentials", missingCreds as unknown as Row[]);
-
-  return written;
-}
-
-/** Mirror the current live bundle (Supabase-first) back into SQL. */
-async function reconcile(sb: AdminClient, section: AdminSection): Promise<number> {
-  const data = await fetchLiveBundle();
-  const map: Record<string, () => Row[]> = {
-    profile: () => [data.profile as unknown as Row],
-    design: () => [data.theme as unknown as Row],
-    projects: () => data.projects as unknown as Row[],
-    skills: () => data.skills as unknown as Row[],
-    experience: () => data.credentials as unknown as Row[],
-    faqs: () => data.faqs as unknown as Row[],
-  };
-  const build = map[section];
-  if (!build) return 0;
-  return upsertRows(sb, SECTION_TABLE[section], build());
-}
-
-/** Run one section sync in the requested mode. Never throws. */
+/**
+ * Run one section write. `replace` needs the on-screen `items`; `reset`
+ * ignores them and restores seed-data.ts factory rows instead. Never throws.
+ */
 export async function syncSection(
   section: AdminSection,
-  mode: SyncMode = "reconcile"
+  mode: SyncMode = "replace",
+  items: Row[] = []
 ): Promise<SyncOutcome> {
   const table = SECTION_TABLE[section];
   const started = Date.now();
@@ -234,6 +155,7 @@ export async function syncSection(
       section,
       table,
       written: 0,
+      deleted: 0,
       rows: 0,
       ms: Date.now() - started,
       simulated: true,
@@ -242,15 +164,35 @@ export async function syncSection(
   }
   try {
     let written = 0;
-    if (mode === "ensure") written = await ensureExtras(sb);
-    else if (mode === "seed") written = await seedRepair(sb);
-    else if (mode === "reconcile") written = await reconcile(sb, section);
+    let deleted = 0;
+    if (mode === "reset") {
+      const { seeded, errors } = await resetToFactorySeed();
+      written = seeded.length;
+      if (errors.length > 0) {
+        return {
+          ok: false,
+          section,
+          table,
+          written,
+          deleted: 0,
+          rows: 0,
+          ms: Date.now() - started,
+          simulated: false,
+          error: errors.join("; "),
+        };
+      }
+    } else {
+      const r = await replaceSection(sb, section, items);
+      written = r.written;
+      deleted = r.deleted;
+    }
     const rows = await countRows(sb, table);
     return {
       ok: true,
       section,
       table,
       written,
+      deleted,
       rows,
       ms: Date.now() - started,
       simulated: false,
@@ -261,6 +203,7 @@ export async function syncSection(
       section,
       table,
       written: 0,
+      deleted: 0,
       rows: 0,
       ms: Date.now() - started,
       simulated: false,
@@ -272,23 +215,42 @@ export async function syncSection(
 export interface VerifyOutcome {
   ok: boolean;
   table: string;
+  /** Actual row count currently in the table. */
   rows: number;
-  ms: number;
+  /** Expected count (null = don't enforce). */
+  expectedCount: number | null;
+  /** True when rows === expectedCount (or expectedCount is null). */
+  countOk: boolean;
+  /** True when the expected token is present (or none was requested). */
   matched: boolean;
   expected: string | null;
+  /** Forbidden tokens (e.g. deleted titles) that are still present. */
+  forbiddenFound: string[];
+  ms: number;
   simulated: boolean;
   error?: string;
 }
 
+export interface VerifyOptions {
+  expected?: string | null;
+  expectedCount?: number | null;
+  /** Strings that must NOT appear anywhere in the table (deleted items). */
+  mustNotContain?: string[];
+}
+
 /**
  * Read-after-write audit: SELECT the section's table back with cache disabled
- * and confirm the expected token is present (SQL-side proof for the UI).
+ * and confirm the row count, the presence of the expected token, and the
+ * absence of every forbidden (deleted) token.
  */
 export async function verifySection(
   section: AdminSection,
-  expected: string | null
+  opts: VerifyOptions = {}
 ): Promise<VerifyOutcome> {
   const table = SECTION_TABLE[section];
+  const expected = opts.expected ?? null;
+  const expectedCount = opts.expectedCount ?? null;
+  const mustNotContain = (opts.mustNotContain ?? []).filter((s) => s && s.trim().length > 0);
   const started = Date.now();
   const sb = createAdminSupabase({ noStore: true });
   if (!sb) {
@@ -296,9 +258,12 @@ export async function verifySection(
       ok: true,
       table,
       rows: 0,
-      ms: Date.now() - started,
+      expectedCount,
+      countOk: true,
       matched: true,
       expected,
+      forbiddenFound: [],
+      ms: Date.now() - started,
       simulated: true,
     };
   }
@@ -306,16 +271,19 @@ export async function verifySection(
     const { data, error } = await sb.from(table).select("*");
     if (error) throw error;
     const rows = (data ?? []) as unknown[];
-    const matched = expected
-      ? JSON.stringify(rows).toLowerCase().includes(expected.toLowerCase())
-      : true;
+    const haystack = JSON.stringify(rows).toLowerCase();
+    const matched = expected ? haystack.includes(expected.toLowerCase()) : true;
+    const forbiddenFound = mustNotContain.filter((t) => haystack.includes(t.toLowerCase()));
     return {
       ok: true,
       table,
       rows: rows.length,
-      ms: Date.now() - started,
+      expectedCount,
+      countOk: expectedCount == null || rows.length === expectedCount,
       matched,
       expected,
+      forbiddenFound,
+      ms: Date.now() - started,
       simulated: false,
     };
   } catch (e) {
@@ -323,9 +291,12 @@ export async function verifySection(
       ok: false,
       table,
       rows: 0,
-      ms: Date.now() - started,
+      expectedCount,
+      countOk: false,
       matched: false,
       expected,
+      forbiddenFound: [],
+      ms: Date.now() - started,
       simulated: false,
       error: e instanceof Error ? e.message : "SQL verify failed.",
     };

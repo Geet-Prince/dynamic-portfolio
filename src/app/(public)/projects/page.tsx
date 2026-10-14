@@ -7,15 +7,25 @@ import { llmsAlternateTypes, projectMatchesTech } from "@/lib/utils";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
-export const revalidate = 3600;
+// Live from Supabase on every request — no ISR/cache layer.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export const metadata: Metadata = {
-  title: "All Projects",
-  description:
-    "Every project by Prince Raj (Geet-Prince) — Progex, Eventify, Verse, Accenture Coding Practice Sandbox, Retro & Carvaan. Full-stack, data science & dev tools.",
-  // NOTE: child `alternates` replaces the root object — repeat the LLM types.
-  alternates: { canonical: "https://geetprince.me/projects", types: { ...llmsAlternateTypes } },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  // Derived from the live projects table so the description can never name a
+  // project that has been removed from /admin. getSiteData is per-request
+  // cached, so this shares the page's fetch.
+  const { projects } = await getSiteData();
+  const names = projects.map((p) => p.title).join(", ");
+  return {
+    title: "All Projects",
+    description: names
+      ? `Every project by Prince Raj (Geet-Prince) — ${names}. Full-stack, data science & dev tools.`
+      : "Every project by Prince Raj (Geet-Prince). Full-stack, data science & developer tools.",
+    // NOTE: child `alternates` replaces the root object — repeat the LLM types.
+    alternates: { canonical: "https://geetprince.me/projects", types: { ...llmsAlternateTypes } },
+  };
+}
 
 const CATEGORIES = ["All", "Full-Stack", "Data Science", "Developer Tools", "Cloud"];
 

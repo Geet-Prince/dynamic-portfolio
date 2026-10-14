@@ -68,7 +68,7 @@ export function CredentialManager({ credentials }: { credentials: Credential[] }
             <div className="flex gap-2">
               <button onClick={() => setEditing(c)} className="btn-secondary !px-4 !py-1.5 !text-[13px]">Edit</button>
               <button
-                onClick={() => { if (confirm(`Delete “${c.title}”?`)) start(async () => { await deleteCredential(c.id); }); }}
+                onClick={() => { if (confirm(`Delete “${c.title}”?`)) start(async () => { await deleteCredential(c.id, c.title); }); }}
                 className="rounded-full border border-red-200 px-4 py-1.5 text-[13px] font-semibold text-red-600 hover:bg-red-50"
               >
                 Delete

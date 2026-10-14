@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
-import { unstable_cache } from "next/cache";
 import {
   createServerSupabase,
   createServiceSupabase,
@@ -9,7 +8,6 @@ import {
 import { seedProfile } from "./seed-data";
 import { getLocalStore, sortByOrder } from "./local-store";
 import { normalizeTheme } from "./themes";
-import { ensureSupabaseSeeded } from "./supabase/seed-sync";
 import { TARGET_QUERIES, getBotConfig } from "./seo-bot";
 import type {
   ContactMessage,
@@ -65,16 +63,24 @@ function withTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
 /**
  * Single-pass parallel portfolio bundle: all six tables in ONE Promise.all
  * batch, read with the service-role client so RLS/cookie mismatches can
- * never silently discard live rows. Supabase is the #1 source of truth:
- * every collection merges independently (no anchor gate), and only a
- * missing/failed query falls back to the local store.
- * No cookies() in here — that keeps it eligible for unstable_cache.
- * Callers must treat the result as read-only (it is shared across requests).
+ * never silently discard live rows.
+ *
+ * Supabase PostgreSQL is the 100% single source of truth. When it is
+ * configured we return the EXACT rows from the database — never merging,
+ * re-adding or re-seeding anything from seed-data.ts. If every project (or
+ * skill / credential / FAQ) has been deleted in /admin, the site correctly
+ * renders zero of them; seed data is NEVER resurrected here. Seed data is
+ * only restored through the explicit, confirmation-gated "Reset to Factory
+ * Seed Data" action in /admin.
+ *
+ * The local JSON store is used ONLY as a fallback when Supabase is
+ * unconfigured or a specific query errors — never as a merge layer.
+ * No cookies() in here, so the bundle can be deduped per request via cache().
  */
-async function fetchPortfolioBundle({ seed }: { seed: boolean }): Promise<SiteData> {
+async function fetchPortfolioBundle(): Promise<SiteData> {
   const local = await getLocalStore();
 
-  // Base layer: persistent local store (seeds on first run, admin edits after).
+  // Fallback layer: local store, used only when Supabase is unavailable.
   const fallback: SiteData = {
     profile: { ...local.profile },
     projects: sortByOrder(local.projects),
@@ -86,25 +92,6 @@ async function fetchPortfolioBundle({ seed }: { seed: boolean }): Promise<SiteDa
 
   // 0ms short-circuit: unconfigured/placeholder env → local store only.
   if (!isSupabaseConfigured()) return fallback;
-
-  // Auto-seed empty/partial tables (idempotent) so Supabase is complete
-  // before any read merges against it.
-  if (seed) {
-    try {
-      const sync = await ensureSupabaseSeeded();
-      for (const line of sync.seeded) {
-        console.log(`[data-fetcher] seed-sync: ${line}`);
-      }
-      for (const line of sync.errors) {
-        console.error(`[data-fetcher] seed-sync: ${line}`);
-      }
-    } catch (e) {
-      console.error(
-        "[data-fetcher] seed-sync failed:",
-        e instanceof Error ? e.message : e
-      );
-    }
-  }
 
   try {
     const { createAdminSupabase } = await import("./supabase/admin");
@@ -121,50 +108,39 @@ async function fetchPortfolioBundle({ seed }: { seed: boolean }): Promise<SiteDa
         ])
       );
 
-    if (profileRes.error) {
-      console.error("[data-fetcher] profile_config read failed:", profileRes.error.message);
-    }
-    if (themeRes.error) {
-      console.error("[data-fetcher] site_theme_config read failed:", themeRes.error.message);
-    }
-    if (projectsRes.error) {
-      console.error("[data-fetcher] projects read failed:", projectsRes.error.message);
-    }
-    if (skillsRes.error) {
-      console.error("[data-fetcher] skills read failed:", skillsRes.error.message);
-    }
-    if (credsRes.error) {
-      console.error("[data-fetcher] credentials read failed:", credsRes.error.message);
-    }
-    if (faqsRes.error) {
-      console.error("[data-fetcher] aeo_faqs read failed:", faqsRes.error.message);
+    for (const [label, res] of [
+      ["profile_config", profileRes],
+      ["site_theme_config", themeRes],
+      ["projects", projectsRes],
+      ["skills", skillsRes],
+      ["credentials", credsRes],
+      ["aeo_faqs", faqsRes],
+    ] as const) {
+      if (res.error) console.error(`[data-fetcher] ${label} read failed:`, res.error.message);
     }
 
-    if (!themeRes.error && themeRes.data) {
-      fallback.theme = normalizeTheme({
-        ...fallback.theme,
-        ...(themeRes.data as Partial<ThemeConfig>),
-      });
-    }
+    // Single-row tables: use the DB row when present, else the last-resort
+    // local default (profile & theme have no delete UI — this only guards
+    // against a not-yet-migrated/empty table so the page can still render).
+    const theme =
+      !themeRes.error && themeRes.data
+        ? normalizeTheme({ ...fallback.theme, ...(themeRes.data as Partial<ThemeConfig>) })
+        : fallback.theme;
 
+    // Collection tables: EXACT rows, including empty arrays. A successful
+    // query with zero rows means "the admin deleted them" → stay deleted.
     return {
       profile:
         !profileRes.error && profileRes.data
           ? { ...fallback.profile, ...(profileRes.data as object) }
           : fallback.profile,
-      projects:
-        !projectsRes.error && projectsRes.data?.length
-          ? projectsRes.data
-          : fallback.projects,
-      skills:
-        !skillsRes.error && skillsRes.data?.length ? skillsRes.data : fallback.skills,
-      credentials:
-        !credsRes.error && credsRes.data?.length
-          ? credsRes.data
-          : fallback.credentials,
-      theme: fallback.theme,
-      faqs:
-        !faqsRes.error && faqsRes.data?.length ? faqsRes.data : fallback.faqs,
+      projects: !projectsRes.error ? ((projectsRes.data ?? []) as SiteData["projects"]) : fallback.projects,
+      skills: !skillsRes.error ? ((skillsRes.data ?? []) as SiteData["skills"]) : fallback.skills,
+      credentials: !credsRes.error
+        ? ((credsRes.data ?? []) as SiteData["credentials"])
+        : fallback.credentials,
+      theme,
+      faqs: !faqsRes.error ? ((faqsRes.data ?? []) as SiteData["faqs"]) : fallback.faqs,
     } as SiteData;
   } catch (e) {
     console.error(
@@ -175,21 +151,18 @@ async function fetchPortfolioBundle({ seed }: { seed: boolean }): Promise<SiteDa
   }
 }
 
-// RAM-cached at the edge (revalidate 3600s) + deduped per request via cache().
-// Admin mutations bust it instantly with revalidateTag('portfolio-data').
-const cachedBundle = unstable_cache(() => fetchPortfolioBundle({ seed: true }), ["portfolio-bundle"], {
-  revalidate: 3600,
-  tags: ["portfolio-data"],
-});
-
-export const getPortfolioBundle = cache(() => cachedBundle());
+// Per-request dedupe only (React cache). NO unstable_cache / ISR layer: the
+// public site reads Supabase directly so an /admin save is reflected on the
+// very next request with zero cache mismatch. Admin mutations additionally
+// call revalidatePath() to refresh the router cache.
+export const getPortfolioBundle = cache(() => fetchPortfolioBundle());
 
 /**
- * Live, uncached bundle for /admin pages: always hits Supabase directly
- * (seeding first) so the dashboard shows exactly what's in the database.
+ * Live, uncached bundle for /admin pages: always hits Supabase directly so
+ * the dashboard shows exactly what is in the database (no seeding).
  */
 export async function fetchLiveBundle(): Promise<SiteData> {
-  return fetchPortfolioBundle({ seed: true });
+  return fetchPortfolioBundle();
 }
 
 export async function getSiteData(): Promise<SiteData> {

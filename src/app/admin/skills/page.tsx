@@ -11,7 +11,13 @@ export default async function AdminSkillsPage() {
       <h1 className="text-2xl font-semibold tracking-tight text-ink">Skills</h1>
       <p className="mb-6 mt-1 text-sm text-muted">Manage the technical arsenal by category.</p>
       <SkillManager skills={skills} />
-      <AdminSavePublishBar section="skills" label="skills" expected={skills[0]?.name ?? null} />
+      <AdminSavePublishBar
+        section="skills"
+        label="skills"
+        items={skills}
+        labelKey="name"
+        expectedCount={skills.length}
+      />
     </div>
   );
 }

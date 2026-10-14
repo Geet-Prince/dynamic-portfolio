@@ -119,7 +119,7 @@ export function FaqManager({ faqs }: { faqs: AeoFaq[] }) {
                 <button onClick={() => setEditing(f)} className="btn-secondary !px-4 !py-1.5 !text-[13px]">Edit</button>
                 <button
                   disabled={pending}
-                  onClick={() => { if (confirm("Delete this FAQ?")) start(async () => { await deleteFaq(f.id); }); }}
+                  onClick={() => { if (confirm("Delete this FAQ?")) start(async () => { await deleteFaq(f.id, f.question); }); }}
                   className="rounded-full border border-red-200 px-4 py-1.5 text-[13px] font-semibold text-red-600 hover:bg-red-50"
                 >
                   Delete

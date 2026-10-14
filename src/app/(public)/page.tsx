@@ -15,7 +15,10 @@ import { RecruiterPill, sanitizeCompany } from "@/components/home/RecruiterPill"
 import { llmsAlternateTypes, projectMatchesTech } from "@/lib/utils";
 import type { SectionKey } from "@/lib/types";
 
-export const revalidate = 3600;
+// Live from Supabase on every request — no ISR/cache layer, so an /admin save
+// is reflected on the very next load with zero stale-cache mismatch.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Prince Raj (Geet-Prince) — Software Engineer & Data Science | NIET Greater Noida",
