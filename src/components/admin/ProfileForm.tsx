@@ -27,7 +27,7 @@ export function ProfileForm({ profile }: { profile: ProfileConfig }) {
   const field = "mb-4";
   const label = "mb-1.5 block text-[13px] font-medium text-ink";
   return (
-    <form onSubmit={onSubmit} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-ambient">
+    <form id="profile-form" onSubmit={onSubmit} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-ambient">
       <h2 className="text-base font-semibold text-ink">Hero, bio, metrics & SEO</h2>
       <p className="mb-5 mt-1 text-[13px] text-muted">Every field below renders live on geetprince.me — no code edits needed.</p>
       <div className="grid gap-x-4 sm:grid-cols-2">

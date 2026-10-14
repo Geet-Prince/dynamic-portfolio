@@ -113,7 +113,7 @@ export function DesignStudio({ theme }: { theme: ThemeConfig }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <form onSubmit={onSubmit} className="space-y-6 lg:col-span-2">
+      <form id="design-form" onSubmit={onSubmit} className="space-y-6 lg:col-span-2">
         {/* Presets */}
         <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-ambient">
           <h2 className="text-base font-semibold text-ink">Theme preset</h2>

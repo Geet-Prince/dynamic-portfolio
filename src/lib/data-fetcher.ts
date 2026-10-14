@@ -9,6 +9,7 @@ import {
 import { seedProfile } from "./seed-data";
 import { getLocalStore, sortByOrder } from "./local-store";
 import { normalizeTheme } from "./themes";
+import { ensureSupabaseSeeded } from "./supabase/seed-sync";
 import { TARGET_QUERIES, getBotConfig } from "./seo-bot";
 import type {
   ContactMessage,
@@ -45,8 +46,10 @@ export async function getThemeConfig(): Promise<ThemeConfig> {
 /**
  * Race a promise against a timeout so a slow network can never hang page
  * load — on timeout the caller falls back to the instant local store.
+ * Default 8000ms: Supabase cold starts routinely exceed 1–2s, so shorter
+ * timeouts silently discard perfectly good live rows.
  */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`Supabase bundle timeout after ${ms}ms`)), ms);
@@ -61,10 +64,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 /**
  * Single-pass parallel portfolio bundle: all six tables in ONE Promise.all
- * batch. No cookies() in here — that keeps it eligible for unstable_cache.
+ * batch, read with the service-role client so RLS/cookie mismatches can
+ * never silently discard live rows. Supabase is the #1 source of truth:
+ * every collection merges independently (no anchor gate), and only a
+ * missing/failed query falls back to the local store.
+ * No cookies() in here — that keeps it eligible for unstable_cache.
  * Callers must treat the result as read-only (it is shared across requests).
  */
-async function fetchPortfolioBundle(): Promise<SiteData> {
+async function fetchPortfolioBundle({ seed }: { seed: boolean }): Promise<SiteData> {
   const local = await getLocalStore();
 
   // Base layer: persistent local store (seeds on first run, admin edits after).
@@ -80,26 +87,59 @@ async function fetchPortfolioBundle(): Promise<SiteData> {
   // 0ms short-circuit: unconfigured/placeholder env → local store only.
   if (!isSupabaseConfigured()) return fallback;
 
+  // Auto-seed empty/partial tables (idempotent) so Supabase is complete
+  // before any read merges against it.
+  if (seed) {
+    try {
+      const sync = await ensureSupabaseSeeded();
+      for (const line of sync.seeded) {
+        console.log(`[data-fetcher] seed-sync: ${line}`);
+      }
+      for (const line of sync.errors) {
+        console.error(`[data-fetcher] seed-sync: ${line}`);
+      }
+    } catch (e) {
+      console.error(
+        "[data-fetcher] seed-sync failed:",
+        e instanceof Error ? e.message : e
+      );
+    }
+  }
+
   try {
-    const supabase = await createServerSupabase();
+    const { createAdminSupabase } = await import("./supabase/admin");
+    const supabase = createAdminSupabase() ?? (await createServerSupabase());
     const [profileRes, projectsRes, skillsRes, credsRes, themeRes, faqsRes] =
       await withTimeout(
         Promise.all([
-          supabase.from("profile_config").select("*").limit(1).single(),
+          supabase.from("profile_config").select("*").limit(1).maybeSingle(),
           supabase.from("projects").select("*").order("display_order", { ascending: true }),
           supabase.from("skills").select("*").order("display_order", { ascending: true }),
           supabase.from("credentials").select("*").order("display_order", { ascending: true }),
-          supabase.from("site_theme_config").select("*").limit(1).single(),
+          supabase.from("site_theme_config").select("*").limit(1).maybeSingle(),
           supabase.from("aeo_faqs").select("*").order("display_order", { ascending: true }),
-        ]),
-        1500
+        ])
       );
 
-    // Profile is the anchor: if it fails, the whole Supabase read is suspect.
-    if (profileRes.error || !profileRes.data) return fallback;
+    if (profileRes.error) {
+      console.error("[data-fetcher] profile_config read failed:", profileRes.error.message);
+    }
+    if (themeRes.error) {
+      console.error("[data-fetcher] site_theme_config read failed:", themeRes.error.message);
+    }
+    if (projectsRes.error) {
+      console.error("[data-fetcher] projects read failed:", projectsRes.error.message);
+    }
+    if (skillsRes.error) {
+      console.error("[data-fetcher] skills read failed:", skillsRes.error.message);
+    }
+    if (credsRes.error) {
+      console.error("[data-fetcher] credentials read failed:", credsRes.error.message);
+    }
+    if (faqsRes.error) {
+      console.error("[data-fetcher] aeo_faqs read failed:", faqsRes.error.message);
+    }
 
-    // Every other collection degrades independently to the local store
-    // (covers tables that don't exist yet / RLS hiccups).
     if (!themeRes.error && themeRes.data) {
       fallback.theme = normalizeTheme({
         ...fallback.theme,
@@ -108,7 +148,10 @@ async function fetchPortfolioBundle(): Promise<SiteData> {
     }
 
     return {
-      profile: { ...fallback.profile, ...(profileRes.data as object) },
+      profile:
+        !profileRes.error && profileRes.data
+          ? { ...fallback.profile, ...(profileRes.data as object) }
+          : fallback.profile,
       projects:
         !projectsRes.error && projectsRes.data?.length
           ? projectsRes.data
@@ -123,19 +166,31 @@ async function fetchPortfolioBundle(): Promise<SiteData> {
       faqs:
         !faqsRes.error && faqsRes.data?.length ? faqsRes.data : fallback.faqs,
     } as SiteData;
-  } catch {
+  } catch (e) {
+    console.error(
+      "[data-fetcher] Supabase bundle failed, using local fallback:",
+      e instanceof Error ? e.message : e
+    );
     return fallback;
   }
 }
 
 // RAM-cached at the edge (revalidate 3600s) + deduped per request via cache().
 // Admin mutations bust it instantly with revalidateTag('portfolio-data').
-const cachedBundle = unstable_cache(fetchPortfolioBundle, ["portfolio-bundle"], {
+const cachedBundle = unstable_cache(() => fetchPortfolioBundle({ seed: true }), ["portfolio-bundle"], {
   revalidate: 3600,
   tags: ["portfolio-data"],
 });
 
 export const getPortfolioBundle = cache(() => cachedBundle());
+
+/**
+ * Live, uncached bundle for /admin pages: always hits Supabase directly
+ * (seeding first) so the dashboard shows exactly what's in the database.
+ */
+export async function fetchLiveBundle(): Promise<SiteData> {
+  return fetchPortfolioBundle({ seed: true });
+}
 
 export async function getSiteData(): Promise<SiteData> {
   // Shared cached bundle first (fetched at most ONCE per request, usually 0×).
@@ -157,6 +212,23 @@ export async function getSiteData(): Promise<SiteData> {
 export async function getProjectBySlug(slug: string) {
   const data = await getSiteData();
   return data.projects.find((p) => p.slug === slug) ?? null;
+}
+
+/**
+ * Live, uncached site data for /admin pages: bypasses unstable_cache so the
+ * dashboard always renders exactly what's in Supabase right now.
+ */
+export async function getLiveSiteData(): Promise<SiteData> {
+  const bundle = await fetchLiveBundle();
+  const preview = await getPreviewOverrides();
+  if (!preview?.profile && !preview?.theme) return { ...bundle };
+  return {
+    ...bundle,
+    profile: preview?.profile ? { ...bundle.profile, ...preview.profile } : bundle.profile,
+    theme: preview?.theme
+      ? normalizeTheme({ ...bundle.theme, ...preview.theme })
+      : bundle.theme,
+  };
 }
 
 export async function getActiveFaqs() {

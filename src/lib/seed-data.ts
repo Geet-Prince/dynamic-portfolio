@@ -8,7 +8,7 @@ import type {
 } from "./types";
 
 export const seedProfile: ProfileConfig = {
-  id: "00000000-0000-0000-0000-000000000001",
+  id: "00000000-0000-4000-8000-000000000001",
   full_name: "Prince Raj",
   handle: "Geet-Prince",
   headline: "Software Engineer & Data Science Specialist.",
@@ -52,7 +52,7 @@ Proof of work: **270+ Data Structures & Algorithms problems** solved across Leet
 
 export const seedProjects: Project[] = [
   {
-    id: "00000000-0000-0000-0000-000000000101",
+    id: "00000000-0000-4000-8000-000000000101",
     title: "Progex",
     slug: "progex",
     tagline: "Competitive-programming analytics platform tracking 270+ DSA solves.",
@@ -79,7 +79,7 @@ Built as a high-performance full-stack app with a clean Apple-grade UI, REST dat
     updated_at: new Date().toISOString(),
   },
   {
-    id: "00000000-0000-0000-0000-000000000102",
+    id: "00000000-0000-4000-8000-000000000102",
     title: "Eventify",
     slug: "eventify",
     tagline: "Full-stack event management platform with auth, bookings & dashboards.",
@@ -103,31 +103,32 @@ Features secure authentication, RESTful backend services, and a responsive React
     updated_at: new Date().toISOString(),
   },
   {
-    id: "00000000-0000-0000-0000-000000000103",
+    id: "00000000-0000-4000-8000-000000000103",
     title: "Verse",
     slug: "verse",
-    tagline: "Minimal social / content publishing app with clean reading experience.",
-    description_markdown: `**Verse** is a minimal content-publishing and social reading app focused on typography, speed, and calm design.
+    tagline: "Interactive online music streaming app with real-time synchronized listening rooms.",
+    description_markdown: `**Verse** is an interactive online music streaming application built around **real-time synchronized listening rooms** — everyone in a room hears the same track at the same moment.
 
-Supports authoring, feeds, and profiles with a distraction-free Apple-style reading surface.`,
+It combines a React web client with a Kotlin service layer and Firebase (Realtime Database + Auth) for presence, synchronised playback state and instant room updates.`,
     architecture_highlights: [
-      "Distraction-free reading surface",
-      "Authoring + feed + profile flows",
-      "Optimised SSR for instant first paint",
+      "Real-time synchronized listening rooms (shared playback state)",
+      "Firebase Realtime Database presence + sync",
+      "React client with a Kotlin service layer",
+      "Live room membership and playback controls",
     ],
     live_url: null,
     github_url: "https://github.com/Geet-Prince",
     thumbnail_url: null,
-    tech_stack: ["React", "JavaScript", "Flask", "Python", "SQL"],
+    tech_stack: ["React", "Kotlin", "Firebase", "JavaScript"],
     category: "Full-Stack",
-    metrics_badge: "SSR · Fast",
+    metrics_badge: "Real-time rooms",
     is_featured: true,
     display_order: 3,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
   {
-    id: "00000000-0000-0000-0000-000000000104",
+    id: "00000000-0000-4000-8000-000000000104",
     title: "Accenture Coding Practice Sandbox",
     slug: "accenture-coding-practice-sandbox",
     tagline: "Curated on-campus coding practice sandbox modelled on Accenture patterns.",
@@ -151,14 +152,15 @@ Used for peer practice at NIET with topic tags, difficulty bands, and Java + Pyt
     updated_at: new Date().toISOString(),
   },
   {
-    id: "00000000-0000-0000-0000-000000000105",
+    id: "00000000-0000-4000-8000-000000000105",
     title: "Retro & Carvaan",
     slug: "retro-carvaan",
-    tagline: "Nostalgic music-experience web app inspired by the iconic Carvaan.",
-    description_markdown: `**Retro & Carvaan** is a nostalgic, retro-styled music discovery experience inspired by the iconic Carvaan player.
+    tagline: "Collaborative web-engineering project — a retro music experience built end-to-end by a team.",
+    description_markdown: `**Retro & Carvaan** is a collaborative web-engineering project: a nostalgic, retro-styled music experience inspired by the iconic Carvaan player, designed and shipped end-to-end by a student engineering team.
 
-Curated playlists, warm vintage visual language, and buttery-smooth interactions — a love letter to timeless melodies built with modern web tech.`,
+It pairs a warm vintage visual language with buttery-smooth, GPU-accelerated interactions — a love letter to timeless melodies built with modern web tech.`,
     architecture_highlights: [
+      "Collaborative team delivery, end to end",
       "Curated retro playlist experience",
       "Vintage design system with modern performance",
       "GPU-accelerated motion throughout",
@@ -177,25 +179,25 @@ Curated playlists, warm vintage visual language, and buttery-smooth interactions
 ];
 
 export const seedSkills: Skill[] = [
-  { id: "s-01", name: "Core Java", category: "Languages & Core", proficiency: 92, is_highlighted: true, display_order: 1 },
-  { id: "s-02", name: "Python", category: "Languages & Core", proficiency: 90, is_highlighted: true, display_order: 2 },
-  { id: "s-03", name: "JavaScript", category: "Languages & Core", proficiency: 88, is_highlighted: true, display_order: 3 },
-  { id: "s-04", name: "SQL", category: "Languages & Core", proficiency: 89, is_highlighted: true, display_order: 4 },
-  { id: "s-05", name: "Spring Boot", category: "Backend & Web Frameworks", proficiency: 85, is_highlighted: true, display_order: 5 },
-  { id: "s-06", name: "Flask", category: "Backend & Web Frameworks", proficiency: 87, is_highlighted: true, display_order: 6 },
-  { id: "s-07", name: "React", category: "Backend & Web Frameworks", proficiency: 88, is_highlighted: true, display_order: 7 },
-  { id: "s-08", name: "REST APIs", category: "Backend & Web Frameworks", proficiency: 90, is_highlighted: true, display_order: 8 },
-  { id: "s-09", name: "NumPy", category: "Data Science & Analytics", proficiency: 86, is_highlighted: true, display_order: 9 },
-  { id: "s-10", name: "Pandas", category: "Data Science & Analytics", proficiency: 87, is_highlighted: true, display_order: 10 },
-  { id: "s-11", name: "Matplotlib", category: "Data Science & Analytics", proficiency: 84, is_highlighted: true, display_order: 11 },
-  { id: "s-12", name: "AWS (Cloud Practitioner)", category: "Cloud, DevOps & OS", proficiency: 82, is_highlighted: true, display_order: 12 },
-  { id: "s-13", name: "Linux (Ubuntu)", category: "Cloud, DevOps & OS", proficiency: 90, is_highlighted: true, display_order: 13 },
-  { id: "s-14", name: "Linux (Mint)", category: "Cloud, DevOps & OS", proficiency: 88, is_highlighted: false, display_order: 14 },
+  { id: "10000000-0000-4000-8000-000000000001", name: "Core Java", category: "Languages & Core", proficiency: 92, is_highlighted: true, display_order: 1 },
+  { id: "10000000-0000-4000-8000-000000000002", name: "Python", category: "Languages & Core", proficiency: 90, is_highlighted: true, display_order: 2 },
+  { id: "10000000-0000-4000-8000-000000000003", name: "JavaScript", category: "Languages & Core", proficiency: 88, is_highlighted: true, display_order: 3 },
+  { id: "10000000-0000-4000-8000-000000000004", name: "SQL", category: "Languages & Core", proficiency: 89, is_highlighted: true, display_order: 4 },
+  { id: "10000000-0000-4000-8000-000000000005", name: "Spring Boot", category: "Backend & Web Frameworks", proficiency: 85, is_highlighted: true, display_order: 5 },
+  { id: "10000000-0000-4000-8000-000000000006", name: "Flask", category: "Backend & Web Frameworks", proficiency: 87, is_highlighted: true, display_order: 6 },
+  { id: "10000000-0000-4000-8000-000000000007", name: "React", category: "Backend & Web Frameworks", proficiency: 88, is_highlighted: true, display_order: 7 },
+  { id: "10000000-0000-4000-8000-000000000008", name: "REST APIs", category: "Backend & Web Frameworks", proficiency: 90, is_highlighted: true, display_order: 8 },
+  { id: "10000000-0000-4000-8000-000000000009", name: "NumPy", category: "Data Science & Analytics", proficiency: 86, is_highlighted: true, display_order: 9 },
+  { id: "10000000-0000-4000-8000-000000000010", name: "Pandas", category: "Data Science & Analytics", proficiency: 87, is_highlighted: true, display_order: 10 },
+  { id: "10000000-0000-4000-8000-000000000011", name: "Matplotlib", category: "Data Science & Analytics", proficiency: 84, is_highlighted: true, display_order: 11 },
+  { id: "10000000-0000-4000-8000-000000000012", name: "AWS (Cloud Practitioner)", category: "Cloud, DevOps & OS", proficiency: 82, is_highlighted: true, display_order: 12 },
+  { id: "10000000-0000-4000-8000-000000000013", name: "Linux (Ubuntu)", category: "Cloud, DevOps & OS", proficiency: 90, is_highlighted: true, display_order: 13 },
+  { id: "10000000-0000-4000-8000-000000000014", name: "Linux (Mint)", category: "Cloud, DevOps & OS", proficiency: 88, is_highlighted: false, display_order: 14 },
 ];
 
 export const seedCredentials: Credential[] = [
   {
-    id: "c-01",
+    id: "20000000-0000-4000-8000-000000000001",
     title: "B.Tech — Computer Science and Engineering (Data Science)",
     organization: "Noida Institute of Engineering and Technology (NIET), Greater Noida",
     location: "Greater Noida, Uttar Pradesh, India",
@@ -208,7 +210,7 @@ export const seedCredentials: Credential[] = [
     display_order: 1,
   },
   {
-    id: "c-02",
+    id: "20000000-0000-4000-8000-000000000002",
     title: "Class XII — Senior Secondary",
     organization: "RPS School, Makanpur",
     location: "India",
@@ -220,7 +222,7 @@ export const seedCredentials: Credential[] = [
     display_order: 2,
   },
   {
-    id: "c-03",
+    id: "20000000-0000-4000-8000-000000000003",
     title: "Class X — Secondary",
     organization: "Golden Bell Public School, Nalanda",
     location: "Nalanda, India",
@@ -232,7 +234,7 @@ export const seedCredentials: Credential[] = [
     display_order: 3,
   },
   {
-    id: "c-04",
+    id: "20000000-0000-4000-8000-000000000004",
     title: "AWS Certified Cloud Practitioner",
     organization: "Amazon Web Services (AWS)",
     location: null,
@@ -245,7 +247,7 @@ export const seedCredentials: Credential[] = [
     display_order: 4,
   },
   {
-    id: "c-05",
+    id: "20000000-0000-4000-8000-000000000005",
     title: "SmartBridge Experiential Learning Program",
     organization: "SmartBridge",
     location: null,
@@ -258,7 +260,7 @@ export const seedCredentials: Credential[] = [
     display_order: 5,
   },
   {
-    id: "c-06",
+    id: "20000000-0000-4000-8000-000000000006",
     title: "Cyber & AI Workforce Program",
     organization: "NIIT Foundation",
     location: null,
@@ -271,7 +273,7 @@ export const seedCredentials: Credential[] = [
     display_order: 6,
   },
   {
-    id: "c-07",
+    id: "20000000-0000-4000-8000-000000000007",
     title: "India AI Impact Summit 2026",
     organization: "India AI Mission",
     location: "India",
@@ -284,7 +286,7 @@ export const seedCredentials: Credential[] = [
     display_order: 7,
   },
   {
-    id: "c-08",
+    id: "20000000-0000-4000-8000-000000000008",
     title: "Agentic AI Hackathon",
     organization: "Hackathon",
     location: null,
@@ -297,7 +299,7 @@ export const seedCredentials: Credential[] = [
     display_order: 8,
   },
   {
-    id: "c-09",
+    id: "20000000-0000-4000-8000-000000000009",
     title: "Code Nakshatra",
     organization: "Hackathon",
     location: null,
@@ -312,7 +314,7 @@ export const seedCredentials: Credential[] = [
 ];
 
 export const seedTheme: ThemeConfig = {
-  id: "00000000-0000-0000-0000-000000000001",
+  id: "00000000-0000-4000-8000-000000000002",
   theme_preset: "cupertino-light",
   hero_layout: "apple-centered",
   card_radius: "24px",
@@ -330,7 +332,7 @@ export const seedTheme: ThemeConfig = {
 
 export const seedFaqs: AeoFaq[] = [
   {
-    id: "00000000-0000-0000-0000-000000000201",
+    id: "30000000-0000-4000-8000-000000000201",
     question: "Who is Prince Raj (Geet-Prince)?",
     answer:
       "Prince Raj, known online as Geet-Prince, is a Software Engineer and Data Science specialist. He is an AWS Certified Cloud Practitioner and a B.Tech Computer Science and Engineering (Data Science) student at Noida Institute of Engineering and Technology (NIET), Greater Noida, building scalable backends and data-driven applications.",
@@ -340,7 +342,7 @@ export const seedFaqs: AeoFaq[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: "00000000-0000-0000-0000-000000000202",
+    id: "30000000-0000-4000-8000-000000000202",
     question: "Where does Prince Raj study Computer Science and Data Science?",
     answer:
       "Prince Raj studies at the Noida Institute of Engineering and Technology (NIET) in Greater Noida, Uttar Pradesh, India. He is pursuing a Bachelor of Technology (B.Tech) in Computer Science and Engineering with a Data Science specialisation, covering DSA, DBMS, operating systems, backend engineering, and applied machine learning.",
@@ -350,17 +352,17 @@ export const seedFaqs: AeoFaq[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: "00000000-0000-0000-0000-000000000203",
+    id: "30000000-0000-4000-8000-000000000203",
     question: "What is Progex and what projects has Prince Raj built?",
     answer:
-      "Progex (progex.geetprince.me) is Prince Raj's flagship competitive-programming analytics platform tracking 270+ DSA solves across LeetCode, GeeksforGeeks, and CodeChef. His other builds include Eventify (event management), Verse (minimal publishing app), the Accenture Coding Practice Sandbox (interview prep), and Retro & Carvaan (music experience).",
+      "Progex (progex.geetprince.me) is Prince Raj's flagship competitive-programming analytics platform tracking 270+ DSA solves across LeetCode, GeeksforGeeks, and CodeChef. His other builds include Eventify (event management), Verse (an interactive music streaming app with real-time synchronized listening rooms, built with React, Kotlin, and Firebase), the Accenture Coding Practice Sandbox (interview prep), and Retro & Carvaan (a collaborative web-engineering project).",
     display_order: 3,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
   {
-    id: "00000000-0000-0000-0000-000000000204",
+    id: "30000000-0000-4000-8000-000000000204",
     question: "What is Prince Raj's technical stack and competitive programming record?",
     answer:
       "Prince Raj has solved 270+ Data Structures & Algorithms problems on LeetCode, GeeksforGeeks, and CodeChef. His stack spans Core Java, Spring Boot, Python, Flask, React, JavaScript, SQL, and REST APIs, plus Data Science with NumPy, Pandas, and Matplotlib. He is an AWS Certified Cloud Practitioner working daily on Ubuntu and Linux Mint.",
@@ -370,7 +372,7 @@ export const seedFaqs: AeoFaq[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: "00000000-0000-0000-0000-000000000205",
+    id: "30000000-0000-4000-8000-000000000205",
     question: "How can recruiters or engineering teams contact Prince Raj?",
     answer:
       "Recruiters can reach Prince Raj through the contact form on geetprince.me, by email at contact@geetprince.me, via GitHub at github.com/Geet-Prince, or on LinkedIn. He is available for Software Engineering and Data Science roles, internships, and collaborations, and typically replies within 48 hours.",

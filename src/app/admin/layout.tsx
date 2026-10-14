@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { adminLogout, purgeCache } from "@/lib/supabase/actions";
+import { AdminAutoSync } from "@/components/admin/AdminAutoSync";
 
 function PurgeButton() {
   async function purgeAction() {
@@ -32,6 +33,7 @@ const NAV = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-canvas">
+      <AdminAutoSync />
       <header className="glass-bar sticky top-0 z-40 border-b border-[var(--border-subtle)]">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5">
           <Link href="/admin" className="font-mono text-sm font-semibold text-ink">

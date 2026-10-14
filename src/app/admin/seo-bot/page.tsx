@@ -1,9 +1,10 @@
-import { getCrawlerVisits, getCustomKeywords, getSerpLogs, getSiteData, getTrackedKeywords } from "@/lib/data-fetcher";
+import { getCrawlerVisits, getCustomKeywords, getSerpLogs, getLiveSiteData, getTrackedKeywords } from "@/lib/data-fetcher";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { ScanButton } from "@/components/admin/ScanButton";
 import { SimulateVisitButton } from "@/components/admin/SimulateVisitButton";
 import { KeywordManager } from "@/components/admin/KeywordManager";
 import { BotConfigPanel } from "@/components/admin/BotConfigPanel";
+import { AdminSavePublishBar } from "@/components/admin/AdminSavePublishBar";
 import { getBotConfigPublic, TARGET_QUERIES, seoHealthAudit, simulateHistory } from "@/lib/seo-bot";
 import { formatDate } from "@/lib/utils";
 import type { SerpLog } from "@/lib/types";
@@ -71,7 +72,7 @@ export default async function SeoBotPage() {
   const [logs, visits, site, customs, tracked, botPublic] = await Promise.all([
     getSerpLogs(200),
     getCrawlerVisits(50),
-    getSiteData(),
+    getLiveSiteData(),
     getCustomKeywords(),
     getTrackedKeywords(),
     getBotConfigPublic(),
@@ -104,7 +105,7 @@ export default async function SeoBotPage() {
     title: "Prince Raj (Geet-Prince) — Software Engineer & Data Science | NIET Greater Noida",
     description: site.profile.subheadline,
     keywords: site.profile.seo_keywords,
-    h1: `Prince Raj (Geet-Prince) — ${site.profile.headline}`,
+    h1: `${site.profile.full_name} (${site.profile.handle}) — ${site.profile.headline}`,
     projectCount: site.projects.length,
     projectsWithAlt: site.projects.length,
   });
@@ -344,6 +345,8 @@ export default async function SeoBotPage() {
           {customs.length > 0 && <> + {customs.length} custom</>}
         </p>
       </section>
+
+      <AdminSavePublishBar section="seo-bot" label="SEO bot" expected={tracked[0] ?? null} />
     </div>
   );
 }

@@ -66,3 +66,26 @@ export function projectMatchesTech(
   }
   return stacks.some((s) => s === t || s.includes(t));
 }
+
+/**
+ * Join institution + location without duplicating overlap.
+ * e.g. ("…(NIET), Greater Noida", "Greater Noida, Uttar Pradesh, India")
+ *   → "…(NIET), Greater Noida, Uttar Pradesh, India" (not "Greater Noida, Greater Noida, …").
+ */
+export function dedupePlace(institution: string, location: string): string {
+  const inst = institution.trim().replace(/[.\s]+$/, "");
+  const loc = location.trim();
+  if (!inst) return loc;
+  if (!loc) return inst;
+  const tail = inst.toLowerCase();
+  const parts = loc.split(/\s*,\s*/).filter(Boolean);
+  let drop = 0;
+  for (let n = parts.length; n > 0; n--) {
+    if (tail.endsWith(parts.slice(0, n).join(", ").toLowerCase())) {
+      drop = n;
+      break;
+    }
+  }
+  const rest = parts.slice(drop);
+  return rest.length > 0 ? `${inst}, ${rest.join(", ")}` : inst;
+}

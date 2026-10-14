@@ -1,5 +1,7 @@
 import type { Credential, ProfileConfig } from "@/lib/types";
+import { dedupePlace } from "@/lib/utils";
 import { HeroDock } from "./HeroDock";
+import { MarkdownText } from "./MarkdownText";
 
 export type HeroLayoutKind = "apple-centered" | "split-executive" | "bento-first";
 
@@ -34,8 +36,7 @@ function EntityFact({
       ) : (
         "a software engineer"
       )}{" "}
-      and a {profile.degree} student at {profile.institution},{" "}
-      {profile.location}. Verifiable work: the{" "}
+      and a {profile.degree} student at {dedupePlace(profile.institution, profile.location)}. Verifiable work: the{" "}
       <a
         href={profile.progex_url}
         className="font-medium text-ink underline decoration-accent-blue/40 underline-offset-2 hover:text-accent-blue"
@@ -124,10 +125,15 @@ export function HeroSection({
           id="hero-heading"
           className="mt-4 max-w-4xl text-3xl font-semibold leading-[1.04] tracking-[-0.035em] text-ink sm:text-5xl"
         >
-          Prince Raj <span className="text-muted">(Geet-Prince)</span> — {profile.headline}
+          {profile.full_name} <span className="text-muted">({profile.handle})</span> — {profile.headline}
         </h1>
         <HeroCallouts awsTitle={awsTitle} dsaCount={profile.dsa_solved_count} />
         <EntityFact profile={profile} awsTitle={awsTitle} />
+        <MarkdownText
+          text={profile.bio_markdown}
+          className="mt-5 max-w-2xl space-y-3"
+          paragraphClassName="text-[15px] leading-relaxed text-muted"
+        />
         <HeroDock email={profile.email} resumeUrl={profile.resume_url} />
       </section>
     );
@@ -146,13 +152,18 @@ export function HeroSection({
               id="hero-heading"
               className="mt-6 text-4xl font-semibold leading-[1.04] tracking-[-0.035em] text-ink sm:text-5xl"
             >
-              Prince Raj <span className="text-muted">(Geet-Prince)</span> — {profile.headline}
+              {profile.full_name} <span className="text-muted">({profile.handle})</span> — {profile.headline}
             </h1>
             <HeroCallouts awsTitle={awsTitle} dsaCount={profile.dsa_solved_count} />
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">
               {profile.subheadline}
             </p>
             <EntityFact profile={profile} awsTitle={awsTitle} />
+            <MarkdownText
+              text={profile.bio_markdown}
+              className="mt-5 max-w-xl space-y-3"
+              paragraphClassName="text-[15px] leading-relaxed text-muted"
+            />
             <HeroDock email={profile.email} resumeUrl={profile.resume_url} />
           </div>
           <aside aria-label="At a glance" className="bento-card !transform-none p-6 lg:col-span-2 lg:sticky lg:top-20">
@@ -208,15 +219,20 @@ export function HeroSection({
         id="hero-heading"
         className="mt-6 max-w-4xl text-4xl font-semibold leading-[1.04] tracking-[-0.035em] text-ink sm:text-6xl lg:text-7xl"
       >
-        Prince Raj <span className="text-muted">(Geet-Prince)</span> — {profile.headline}
+        {profile.full_name} <span className="text-muted">({profile.handle})</span> — {profile.headline}
       </h1>
       <HeroCallouts awsTitle={awsTitle} dsaCount={profile.dsa_solved_count} />
       <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
         {profile.subheadline}
       </p>
       <EntityFact profile={profile} awsTitle={awsTitle} />
+      <MarkdownText
+        text={profile.bio_markdown}
+        className="mt-5 max-w-2xl space-y-3"
+        paragraphClassName="text-[15px] leading-relaxed text-muted"
+      />
       <p className="mt-3 font-mono text-xs uppercase tracking-[0.18em] text-subtle">
-        B.Tech CSE (Data Science) · {profile.institution} · {profile.location}
+        B.Tech CSE (Data Science) · {dedupePlace(profile.institution, profile.location)}
       </p>
       <HeroDock email={profile.email} resumeUrl={profile.resume_url} />
     </section>

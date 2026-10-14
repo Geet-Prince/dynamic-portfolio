@@ -3,6 +3,8 @@
 import { useMemo, useRef, useState } from "react";
 import { Check, Copy, FileDown, Guitar, Music4, Phone } from "lucide-react";
 import type { Credential, ProfileConfig, Skill } from "@/lib/types";
+import { dedupePlace } from "@/lib/utils";
+import { MarkdownText } from "./MarkdownText";
 import { Reveal } from "./Reveal";
 
 /**
@@ -233,8 +235,7 @@ export function BentoIdentityGrid({
               <p className="mt-4 text-sm leading-relaxed text-muted">
                 {profile.full_name} (developer handle: {profile.handle}) is{" "}
                 {awsCert ? <>an <span className="font-medium text-ink">{awsCert.title}</span></> : "a software engineer"}{" "}
-                and a {profile.degree} student at {profile.institution},{" "}
-                {profile.location}. Specialising in Core Java, Spring Boot, Python,
+                and a {profile.degree} student at {dedupePlace(profile.institution, profile.location)}. Specialising in Core Java, Spring Boot, Python,
                 Flask and REST APIs — with applied data science (NumPy, Pandas,
                 Matplotlib) and a Linux-first workflow on Ubuntu & Linux Mint.{" "}
                 <a href="https://geetprince.me" className="font-medium text-ink underline decoration-accent-blue/40 underline-offset-2 hover:text-accent-blue">
@@ -276,12 +277,17 @@ export function BentoIdentityGrid({
               </div>
               <p key={lens} className="animate-lens-fade mt-3 border-l-2 border-accent-blue pl-3 text-sm leading-relaxed text-muted">
                 {lens === "engineer" &&
-                  "Lens · Backend systems — Core Java, Spring Boot and Flask REST APIs with SQL persistence, shipped as Eventify's auth-scoped services and Verse's SSR feeds."}
+                  "Lens · Backend systems — Core Java, Spring Boot and Flask REST APIs with SQL persistence, shipped as Eventify's auth-scoped services and Verse's real-time listening rooms."}
                 {lens === "data" &&
                   `Lens · Data science — NumPy, Pandas and Matplotlib pipelines on a B.Tech CSE (Data Science) foundation at ${profile.institution_short}.`}
                 {lens === "solver" &&
                   `Lens · Problem solver — ${profile.dsa_solved_count}+ DSA reps across LeetCode, GeeksforGeeks and CodeChef, tracked live on the Progex analytics platform.`}
               </p>
+              <MarkdownText
+                text={profile.bio_markdown}
+                className="mt-4 space-y-2 border-t border-[var(--border-subtle)] pt-4"
+                paragraphClassName="text-[13px] leading-relaxed text-muted"
+              />
             </div>
             <p className="mt-6 font-mono text-xs text-subtle">{profile.location}</p>
           </article>
