@@ -1,0 +1,377 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Default (pre-theme) values match cupertino-light so first paint is never unstyled.
+   The active preset is inlined on <html> by the root layout (server-side). */
+:root {
+  --bg-canvas: #fbfbfd;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f5f5f7;
+  --bg-input: #f5f5f7;
+  --bg-glass: rgba(251, 251, 253, 0.78);
+  --text-ink: #1d1d1f;
+  --text-muted: #52525b;
+  --text-subtle: #86868b;
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.18);
+  --accent-primary: #0066cc;
+  --accent-text: #ffffff;
+  --accent-fill: #0066cc;
+  --accent-fill-hover: #0071e3;
+  --accent-emerald: #10b981;
+  --card-radius: 24px;
+  --glass-blur: 20px;
+  /* Legacy aliases (kept resolving for older selectors). */
+  --canvas: #fbfbfd;
+  --surface: #ffffff;
+  --ink: #1d1d1f;
+  --muted: #52525b;
+  --subtle: #86868b;
+  --pill: #f5f5f7;
+  --glass: rgba(251, 251, 253, 0.78);
+  --accent-blue: #0066cc;
+  --accent-blue-hover: #0071e3;
+  --accent-emerald: #10b981;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-ink);
+  font-feature-settings: "ss01", "cv11";
+}
+
+::selection {
+  background: rgba(0, 102, 204, 0.16);
+}
+
+/* Apple-thin scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-canvas);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.4);
+  border-radius: 8px;
+  border: 2px solid var(--bg-canvas);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.6);
+}
+
+/* Bento / card shared treatment (radius + surface are theme-driven CSS vars) */
+@layer components {
+  .bento-card {
+    @apply border transition-all duration-500;
+    background-color: var(--bg-surface);
+    border-color: var(--border-subtle);
+    border-radius: var(--card-radius);
+    box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.03);
+  }
+  .bento-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.06);
+  }
+  .glass-bar {
+    background-color: var(--bg-glass);
+    backdrop-filter: saturate(180%) blur(var(--glass-blur));
+    -webkit-backdrop-filter: saturate(180%) blur(var(--glass-blur));
+  }
+  .pill {
+    @apply inline-flex items-center rounded-full px-3 py-1 font-mono text-xs;
+    background-color: var(--bg-elevated);
+    color: var(--text-ink);
+  }
+  .section-label {
+    @apply font-mono text-xs font-medium uppercase tracking-[0.18em];
+    color: var(--text-subtle);
+  }
+  /* Locked brand fill + white text: guaranteed ≥4.5:1 contrast in EVERY theme.
+     The custom studio accent drives links/focus/active states instead. */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-colors duration-300;
+    background-color: var(--accent-fill);
+    color: #ffffff;
+  }
+  .btn-primary:hover {
+    background-color: var(--accent-fill-hover);
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-colors duration-300;
+    background-color: var(--bg-elevated);
+    color: var(--text-ink);
+  }
+  .btn-secondary:hover {
+    background-color: color-mix(in srgb, var(--text-ink) 8%, var(--bg-elevated));
+  }
+  /* Distinct field surface + strong border so inputs never blend into cards. */
+  .input-apple {
+    @apply w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none;
+    background-color: var(--bg-input);
+    border-color: var(--border-strong);
+    color: var(--text-ink);
+  }
+  .input-apple::placeholder {
+    color: var(--text-muted);
+    opacity: 0.75;
+  }
+  .input-apple:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 20%, transparent);
+  }
+  .input-apple option {
+    background-color: var(--bg-surface);
+    color: var(--text-ink);
+  }
+}
+
+/* Sequoia Midnight: deeper card shadows on near-black canvas. */
+[data-theme="sequoia-dark"] .bento-card {
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.45);
+}
+[data-theme="sequoia-dark"] .bento-card:hover {
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.55);
+}
+[data-theme="sequoia-dark"] ::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+/* Apple segmented control (Executive / X-Ray) */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background-color: var(--bg-elevated);
+  border-radius: 999px;
+}
+.segmented button {
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.segmented button[aria-pressed="true"] {
+  background-color: var(--bg-surface);
+  color: var(--text-ink);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* ⌘K command palette */
+.cmdk-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 16px 16px;
+}
+.cmdk-panel {
+  width: 100%;
+  max-width: 560px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px -8px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+.cmdk-item[data-active="true"] {
+  background-color: var(--bg-elevated);
+}
+.cmdk-item[data-active="true"] .cmdk-title {
+  color: var(--accent-primary);
+}
+
+/* X-Ray checklist */
+.xray-list li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.xray-list li::before {
+  content: "▸";
+  color: var(--accent-emerald);
+  font-family: var(--font-jetbrains), monospace;
+  flex-shrink: 0;
+}
+
+/* ——— Architectural Blueprint grid system ——— */
+.blueprint-rail {
+  position: relative;
+}
+
+/* 7×7px geometric crosshair marker at rail/divider intersections */
+.crosshair {
+  position: absolute;
+  top: -4px;
+  width: 7px;
+  height: 7px;
+  pointer-events: none;
+}
+.crosshair::before,
+.crosshair::after {
+  content: "";
+  position: absolute;
+  background-color: var(--text-muted);
+  opacity: 0.4;
+}
+.crosshair::before {
+  left: 3px;
+  top: 0;
+  width: 1px;
+  height: 7px;
+}
+.crosshair::after {
+  left: 0;
+  top: 3px;
+  width: 7px;
+  height: 1px;
+}
+.crosshair-left {
+  left: -4px;
+}
+.crosshair-right {
+  right: -4px;
+}
+
+/* Cursor-tracked specular glow for Living Bento (vars set on mousemove, no re-render) */
+.specular {
+  position: relative;
+}
+.specular::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  background: radial-gradient(
+    400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0, 102, 204, 0.08),
+    transparent 40%
+  );
+}
+.specular:hover::before {
+  opacity: 1;
+}
+
+/* Schematic packet flow + view transitions (GPU-composited only) */
+@keyframes xray-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-xray-in {
+  animation: xray-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes lens-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-lens-fade {
+  animation: lens-fade 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes dock-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(0.92);
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-dock-pop {
+  animation: dock-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Guitar string vibration (decaying spring feel) */
+@keyframes string-pluck {
+  0% {
+    transform: translateY(0);
+  }
+  20% {
+    transform: translateY(-2.5px);
+  }
+  40% {
+    transform: translateY(2px);
+  }
+  60% {
+    transform: translateY(-1.2px);
+  }
+  80% {
+    transform: translateY(0.6px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.string-plucked line {
+  animation: string-pluck 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Kill SMIL packet motion for reduced-motion users (CSS override above can't reach SMIL) */
+@media (prefers-reduced-motion: reduce) {
+  .flow-dot {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: #1d1d1f;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 0 0 12px 0;
+  font-size: 14px;
+}
+.skip-link:focus {
+  left: 0;
+}

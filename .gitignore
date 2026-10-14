@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+.env*.local
+.vercel
+*.tsbuildinfo
+.DS_Store
+# Dual-mode local persistence (per-machine admin edits; Supabase is the shared source of truth)
+data/portfolio-store.json
